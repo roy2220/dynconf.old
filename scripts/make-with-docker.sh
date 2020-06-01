@@ -7,4 +7,4 @@ export COMPOSE_FILE=scripts/builder.docker-compose.yml
 export COMPOSE_PROJECT_NAME=dynconf
 trap 'docker-compose down --remove-orphans' EXIT
 docker-compose build
-docker-compose run builder make "${@}"
+docker-compose run --rm builder make "${@}"

@@ -15,8 +15,10 @@ services:
     links:
       - test-consul
     environment:
-      - TEST_CONSUL_SCHEME=http
+      - CGO_ENABLED=0
+      - GOCACHE=/project/build/cache/go
       - TEST_CONSUL_ADDRESS=test-consul:8500
+      - TEST_CONSUL_SCHEME=http
   test-consul:
     image: consul:latest
     environment:

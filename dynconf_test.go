@@ -124,15 +124,32 @@ func TestWatchLatestValue(t *testing.T) {
 	})
 }
 
+func TestWatchRemove(t *testing.T) {
+	wr, c := makeWatcher(t)
+	_, err := c.KV().Put(&api.KVPair{
+		Key:   "hello3",
+		Value: []byte(`{}`),
+	}, &api.WriteOptions{})
+	assert.NoError(t, err)
+	w, err := wr.AddWatch(context.Background(), "hello3", newValue)
+	assert.NoError(t, err)
+
+	cfg := w.LatestValue().(*config)
+	go w.Remove()
+	<-cfg.WatchRemovedEvent()
+}
+
 type config struct {
 	Foo int
 	Bar string
 
-	outdatedEvent chan struct{}
+	outdatedEvent     chan struct{}
+	watchRemovedEvent chan struct{}
 }
 
 func (c *config) Init() *config {
 	c.outdatedEvent = make(chan struct{})
+	c.watchRemovedEvent = make(chan struct{})
 	return c
 }
 
@@ -151,6 +168,14 @@ func (c *config) OnOutdated() {
 
 func (c *config) OutdatedEvent() <-chan struct{} {
 	return c.outdatedEvent
+}
+
+func (c *config) OnWatchRemoved() {
+	close(c.watchRemovedEvent)
+}
+
+func (c *config) WatchRemovedEvent() <-chan struct{} {
+	return c.watchRemovedEvent
 }
 
 func (c *config) Equals(t *testing.T, other *config) bool {

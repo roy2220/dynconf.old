@@ -1,4 +1,4 @@
-// Package dynconf implements a dynamic configuration.
+// Package dynconf implements dynamic configuration.
 package dynconf
 
 import (
@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Watcher presents a watcher for configurations.
+// Watcher presents a watcher for dynamic configuration.
 type Watcher struct {
 	client *api.Client
 	logger *zerolog.Logger
@@ -140,6 +140,11 @@ func (w *Watch) keepValueUpToDate() {
 			w.logger.Info().
 				Str("key", w.key).
 				Msg("dynconf_watch_removed")
+
+			if callback, ok := w.LatestValue().(ValueWatchRemovedCallback); ok {
+				callback.OnWatchRemoved()
+			}
+
 			return
 		}
 
@@ -193,8 +198,16 @@ type Value interface {
 
 // ValueOutdatedCallback represents an optional callback to Value.
 type ValueOutdatedCallback interface {
-	// OnOutdated is called when the value is out of date.
+	// OnOutdated is called once after the value, as the latest value,
+	// has been replaced with another value.
 	OnOutdated()
+}
+
+// ValueWatchRemovedCallback represents an optional callback to Value.
+type ValueWatchRemovedCallback interface {
+	// OnWatchRemoved is called once after the watch has been removed,
+	// which is set on the key for the value.
+	OnWatchRemoved()
 }
 
 // ErrKeyNotFound is returned when a key has not been found.
