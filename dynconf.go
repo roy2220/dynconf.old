@@ -44,15 +44,15 @@ func (w *Watcher) AddWatch(ctx context.Context, key string, valueFactory ValueFa
 
 // Watch presents a watch on a key.
 type Watch struct {
-	client           *api.Client
-	logger           *zerolog.Logger
-	key              string
-	valueFactory     ValueFactory
-	latestValue      atomic.Value
-	latestValueIndex uint64
-	ctx              context.Context
-	cancel           context.CancelFunc
-	wg               sync.WaitGroup
+	client       *api.Client
+	logger       *zerolog.Logger
+	key          string
+	valueFactory ValueFactory
+	value        atomic.Value
+	valueIndex   uint64
+	ctx          context.Context
+	cancel       context.CancelFunc
+	wg           sync.WaitGroup
 }
 
 // Remove removes the watch.
@@ -66,9 +66,9 @@ func (w *Watch) Key() string {
 	return w.key
 }
 
-// LatestValue returns the latest value of the key on which the watch is set.
-func (w *Watch) LatestValue() Value {
-	return w.latestValue.Load().(Value)
+// Value returns the latest value of the key on which the watch is set.
+func (w *Watch) Value() Value {
+	return w.value.Load().(Value)
 }
 
 func (w *Watch) populateValue(ctx context.Context) error {
@@ -90,7 +90,7 @@ func (w *Watch) populateValue(ctx context.Context) error {
 	}
 
 	w.setValue(value)
-	w.latestValueIndex = kvPair.ModifyIndex
+	w.valueIndex = kvPair.ModifyIndex
 	return nil
 }
 
@@ -111,7 +111,7 @@ func (w *Watch) keepValueUpToDate() {
 
 	for {
 		queryOptions := (&api.QueryOptions{
-			WaitIndex: w.latestValueIndex,
+			WaitIndex: w.valueIndex,
 		}).WithContext(w.ctx)
 
 		var kvPair *api.KVPair
@@ -141,14 +141,14 @@ func (w *Watch) keepValueUpToDate() {
 				Str("key", w.key).
 				Msg("dynconf_watch_removed")
 
-			if callback, ok := w.LatestValue().(ValueWatchRemovedCallback); ok {
+			if callback, ok := w.Value().(ValueWatchRemovedCallback); ok {
 				callback.OnWatchRemoved()
 			}
 
 			return
 		}
 
-		if kvPair.ModifyIndex == w.latestValueIndex {
+		if kvPair.ModifyIndex == w.valueIndex {
 			continue
 		}
 
@@ -159,7 +159,7 @@ func (w *Watch) keepValueUpToDate() {
 				Str("key", w.key).
 				Str("new_value", newValue.String()).
 				Msg("dynconf_value_updated")
-			oldValue := w.LatestValue()
+			oldValue := w.Value()
 			w.setValue(newValue)
 
 			if callback, ok := oldValue.(ValueOutdatedCallback); ok {
@@ -172,16 +172,16 @@ func (w *Watch) keepValueUpToDate() {
 				Msg("dynconf_value_unmarshal_failed")
 		}
 
-		if kvPair.ModifyIndex < w.latestValueIndex {
+		if kvPair.ModifyIndex < w.valueIndex {
 			kvPair.ModifyIndex = 0
 		}
 
-		w.latestValueIndex = kvPair.ModifyIndex
+		w.valueIndex = kvPair.ModifyIndex
 	}
 }
 
 func (w *Watch) setValue(value Value) {
-	w.latestValue.Store(value)
+	w.value.Store(value)
 }
 
 // ValueFactory is the type of the function returning a new value.

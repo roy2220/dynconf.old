@@ -42,7 +42,7 @@ func TestWatcherAddWatcher(t *testing.T) {
 	assert.Equal(t, "hello", w.Key())
 }
 
-func TestWatchLatestValue(t *testing.T) {
+func TestWatchValue(t *testing.T) {
 	wr, c := makeWatcher(t)
 	_, err := c.KV().Put(&api.KVPair{
 		Key:   "hello2",
@@ -54,7 +54,7 @@ func TestWatchLatestValue(t *testing.T) {
 		defer w.Remove()
 	}
 
-	cfg := w.LatestValue().(*config)
+	cfg := w.Value().(*config)
 	cfg.Equals(t, &config{
 		Foo: 99,
 		Bar: "world",
@@ -68,7 +68,7 @@ func TestWatchLatestValue(t *testing.T) {
 
 	<-cfg.OutdatedEvent()
 
-	cfg = w.LatestValue().(*config)
+	cfg = w.Value().(*config)
 	cfg.Equals(t, &config{
 		Foo: 108,
 		Bar: "haha",
@@ -87,7 +87,7 @@ func TestWatchLatestValue(t *testing.T) {
 	default:
 	}
 
-	cfg = w.LatestValue().(*config)
+	cfg = w.Value().(*config)
 	cfg.Equals(t, &config{
 		Foo: 108,
 		Bar: "haha",
@@ -103,7 +103,7 @@ func TestWatchLatestValue(t *testing.T) {
 	default:
 	}
 
-	cfg = w.LatestValue().(*config)
+	cfg = w.Value().(*config)
 	cfg.Equals(t, &config{
 		Foo: 108,
 		Bar: "haha",
@@ -117,7 +117,7 @@ func TestWatchLatestValue(t *testing.T) {
 
 	<-cfg.OutdatedEvent()
 
-	cfg = w.LatestValue().(*config)
+	cfg = w.Value().(*config)
 	cfg.Equals(t, &config{
 		Foo: 666,
 		Bar: "sixsixsix",
@@ -134,7 +134,7 @@ func TestWatchRemove(t *testing.T) {
 	w, err := wr.AddWatch(context.Background(), "hello3", newValue)
 	assert.NoError(t, err)
 
-	cfg := w.LatestValue().(*config)
+	cfg := w.Value().(*config)
 	go w.Remove()
 	<-cfg.WatchRemovedEvent()
 }
