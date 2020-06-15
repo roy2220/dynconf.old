@@ -3,6 +3,7 @@ package dynconf_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -17,7 +18,7 @@ import (
 func TestWatcherAddWatcher(t *testing.T) {
 	wr, c := makeWatcher(t)
 	_, err := wr.AddWatch(context.Background(), "hello", newValue)
-	assert.EqualError(t, err, "dynconf: key not found: key=\"hello\"")
+	assert.EqualError(t, err, "dynconf: key not found; key=\"hello\"")
 
 	_, err = c.KV().Put(&api.KVPair{
 		Key:   "hello",
@@ -26,7 +27,9 @@ func TestWatcherAddWatcher(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = wr.AddWatch(context.Background(), "hello", newValue)
-	assert.EqualError(t, err, "dynconf: value unmarshal failed: err=\"invalid character 'b' looking for beginning of value\" key=\"hello\" data=\"bad json\"")
+	assert.EqualError(t, err, "dynconf: value unmarshal failed; key=\"hello\" data=\"bad json\": invalid character 'b' looking for beginning of value")
+	var err2 *json.SyntaxError
+	assert.True(t, errors.As(err, &err2))
 
 	_, err = c.KV().Put(&api.KVPair{
 		Key:   "hello",

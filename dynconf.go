@@ -76,17 +76,17 @@ func (w *Watch) populateValue(ctx context.Context) error {
 	kvPair, _, err := w.client.KV().Get(w.key, queryOptions)
 
 	if err != nil {
-		return fmt.Errorf("dynconf: kv get failed: err=%q key=%q", err, w.key)
+		return fmt.Errorf("dynconf: kv get failed; key=%q: %w", w.key, err)
 	}
 
 	if kvPair == nil {
-		return fmt.Errorf("%w: key=%q", ErrKeyNotFound, w.key)
+		return fmt.Errorf("%w; key=%q", ErrKeyNotFound, w.key)
 	}
 
 	value := w.valueFactory()
 
 	if err := value.Unmarshal(kvPair.Value); err != nil {
-		return fmt.Errorf("dynconf: value unmarshal failed: err=%q key=%q data=%q", err, w.key, kvPair.Value)
+		return fmt.Errorf("dynconf: value unmarshal failed; key=%q data=%q: %w", w.key, kvPair.Value, err)
 	}
 
 	w.setValue(value)
